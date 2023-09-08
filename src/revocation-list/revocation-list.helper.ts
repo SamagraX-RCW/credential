@@ -1,5 +1,6 @@
+import { Injectable } from '@nestjs/common';
 // @ts-ignore
-import { Bitstring } from '@techsavvyash/bitstring';
+import { Bitstring } from '@SamagraX-RCW/bitstring';
 
 type BitstringConstructorParam = {
   length?: number,
@@ -9,9 +10,14 @@ type BitstringConstructorParam = {
 export class RevocationList {
 
   private bitstring: any;
+  // private length: number;
+
   constructor({ length, buffer }: BitstringConstructorParam = { length: 100000 }) {
+    // if (length === undefined) length = 100000;
     this.bitstring = new Bitstring({ length, buffer });
+    // this.length = this.bitstring.length;
   }
+
 
   setRevoked(index, revoked) {
     if (typeof revoked !== 'boolean') {
