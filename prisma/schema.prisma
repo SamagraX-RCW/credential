@@ -37,10 +37,3 @@ model VerifiableCredentials {
   updatedBy         String?
   tags              String[]
 }
-
-model RevocationLists {
-  issuer                 String   @id
-  latestRevocationListId String
-  lastCredentialIdx      Int
-  allRevocationLists     String[]
-}
