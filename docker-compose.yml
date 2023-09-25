@@ -35,7 +35,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
+      rcw-test:
       default:
+
+networks:
+  rcw-test:
+    external: true
 
 volumes:
   data:
