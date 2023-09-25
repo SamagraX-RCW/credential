@@ -139,7 +139,12 @@ export class CredentialsService {
     }
     try {
       // calling identity service to verify the issuer DID
-      const verificationMethod = credToVerify.issuer;
+      
+      let verificationMethod;
+      if(typeof credToVerify.issuer ===  'string')
+        verificationMethod = [credToVerify.issuer];
+      else verificationMethod = credToVerify.issuer;
+
       let verifedCredential = false;
       let credentialPayloadToVerify = credToVerify;
 
