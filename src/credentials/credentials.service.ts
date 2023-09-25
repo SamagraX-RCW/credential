@@ -231,6 +231,7 @@ export class CredentialsService {
     try {
       let issuers;
       if (typeof credInReq.issuer === 'string') issuers = [credInReq.issuer];
+      else issuers = credInReq.issuer;
       for (let i = 0; i < issuers.length; i++) {
         credInReq['proof'] = {
           proofValue: await this.identityUtilsService.signVC(
