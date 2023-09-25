@@ -23,6 +23,7 @@ import { IdentityUtilsService } from './utils/identity.utils.service';
 import { RenderingUtilsService } from './utils/rendering.utils.service';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ION = require('@decentralized-identity/ion-tools');
+const jsonwebtoken = require('jsonwebtoken');
 
 @Injectable()
 export class CredentialsService {
@@ -139,15 +140,28 @@ export class CredentialsService {
     try {
       // calling identity service to verify the issuer DID
       const verificationMethod = credToVerify.issuer;
-      const did: DIDDocument = await this.identityUtilsService.resolveDID(
-        verificationMethod
-      );
+      let verifedCredential = false;
+      let credentialPayloadToVerify = credToVerify;
 
-      // VERIFYING THE JWS
-      await ION.verifyJws({
-        jws: credToVerify?.proof?.proofValue,
-        publicJwk: did.verificationMethod[0].publicKeyJwk,
-      });
+      // We sign using the issuers array left to right
+      // verify right to left
+      for (let i = verificationMethod.length - 1; i >= 0; i--) {
+        const did: DIDDocument = await this.identityUtilsService.resolveDID(
+          verificationMethod[i]
+        );
+        // VERIFYING THE JWS
+        verifedCredential = await ION.verifyJws({
+          jws: credentialPayloadToVerify?.proof?.proofValue,
+          publicJwk: did.verificationMethod[0].publicKeyJwk,
+        });
+        if (!verifedCredential) break;
+
+        // Get the signed credential payload
+        const decodedToken = jsonwebtoken.decode(
+          credentialPayloadToVerify.proof.proofValue
+        );
+        credentialPayloadToVerify = JSON.parse(JSON.parse(decodedToken));
+      }
       this.logger.debug('Verified JWS');
       return {
         status: status,
@@ -159,7 +173,7 @@ export class CredentialsService {
               new Date(credToVerify.expirationDate).getTime() < Date.now()
                 ? 'NOK'
                 : 'OK', // NOK represents expired
-            proof: 'OK',
+            proof: verifedCredential ? 'OK' : 'NOK',
           },
         ],
       };
@@ -172,8 +186,9 @@ export class CredentialsService {
   }
 
   async issueCredential(issueRequest: IssueCredentialDTO) {
-    this.logger.debug(`Received issue credential request`);
+    this.logger.debug(`Received issue credential request`, issueRequest);
     const credInReq = issueRequest.credential;
+
     // check for issuance date
     if (!credInReq.issuanceDate)
       credInReq.issuanceDate = new Date(Date.now()).toISOString();
@@ -209,16 +224,21 @@ export class CredentialsService {
     }
     // sign the credential
     try {
-      credInReq['proof'] = {
-        proofValue: await this.identityUtilsService.signVC(
-          transformCredentialInput(credInReq as CredentialPayload),
-          credInReq.issuer
-        ),
-        type: 'Ed25519Signature2020',
-        created: new Date().toISOString(),
-        verificationMethod: credInReq.issuer,
-        proofPurpose: 'assertionMethod',
-      };
+      let issuers;
+      if (typeof credInReq.issuer === 'string') issuers = [credInReq.issuer];
+      for (let i = 0; i < issuers.length; i++) {
+        credInReq['proof'] = {
+          proofValue: await this.identityUtilsService.signVC(
+            transformCredentialInput(credInReq as CredentialPayload),
+            issuers[i]
+          ),
+          type: 'Ed25519Signature2020',
+          created: new Date().toISOString(),
+          verificationMethod: issuers[i],
+          proofPurpose: 'assertionMethod',
+        };
+        this.logger.debug(`signed credential using issuer ${issuers[i]}`);
+      }
     } catch (err) {
       this.logger.error('Error signing the credential');
       throw new InternalServerErrorException('Problem signing the credential');
@@ -231,9 +251,9 @@ export class CredentialsService {
       data: {
         id: credInReq.id,
         type: credInReq.type,
-        issuer: credInReq.issuer as IssuerType as string,
-        issuanceDate: credInReq.issuanceDate,
-        expirationDate: credInReq.expirationDate,
+        issuer: credInReq.issuer as unknown as string[],
+        issuanceDate: credInReq.issuanceDate as string,
+        expirationDate: credInReq.expirationDate as string,
         subject: credInReq.credentialSubject as JwtCredentialSubject,
         subjectId: (credInReq.credentialSubject as JwtCredentialSubject).id,
         proof: credInReq.proof as Proof,
@@ -285,7 +305,7 @@ export class CredentialsService {
     const filteringSubject = getCreds.subject;
     const credentials = await this.prisma.verifiableCredentials.findMany({
       where: {
-        issuer: getCreds.issuer?.id,
+        issuer: { equals: getCreds.issuer?.id },
         AND: filteringSubject
           ? Object.keys(filteringSubject).map((key: string) => ({
               subject: {

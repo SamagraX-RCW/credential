@@ -5,7 +5,7 @@ CREATE TYPE "VCStatus" AS ENUM ('PENDING', 'ISSUED', 'REVOKED');
 CREATE TABLE "VerifiableCredentials" (
     "id" TEXT NOT NULL,
     "type" TEXT[],
-    "issuer" TEXT NOT NULL,
+    "issuer" TEXT[],
     "issuanceDate" TEXT NOT NULL,
     "expirationDate" TEXT NOT NULL,
     "credential_schema" TEXT NOT NULL,

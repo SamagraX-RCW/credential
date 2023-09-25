@@ -13,6 +13,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    ports:
+      - 5434:5432
   credentials-service:
     image: cred
     build: .
@@ -35,12 +37,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      rcw-test:
       default:
-
-networks:
-  rcw-test:
-    external: true
 
 volumes:
   data:
