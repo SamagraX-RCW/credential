@@ -123,7 +123,12 @@ export const issueCredentialReturnTypeSchema = {
             verificationMethod: { type: 'string' },
           },
         },
-        issuer: { type: 'string' },
+        issuer: {
+          "type": ["string", "array"],
+          "items": {
+            "type": "string"
+          }
+        },
         issuanceDate: { type: 'string' },
         expirationDate: { type: 'string' },
         credentialSubject: {
