@@ -311,7 +311,7 @@ export class CredentialsService {
     const filteringSubject = getCreds.subject;
     const credentials = await this.prisma.verifiableCredentials.findMany({
       where: {
-        issuer: { equals: getCreds.issuer?.id },
+        issuer: { has: getCreds.issuer?.id },
         AND: filteringSubject
           ? Object.keys(filteringSubject).map((key: string) => ({
               subject: {
