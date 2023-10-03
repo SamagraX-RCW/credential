@@ -31,9 +31,11 @@ describe('CredentialsService', () => {
   const getCredReqValidate = ajv.compile(getCredentialByIdSchema);
 
   let issuerDID;
+  let secondIssuerDID;
   let subjectDID;
   let credentialSchemaID;
   let sampleCredReqPayload;
+  let sampleMultipleIssuerReqPayload;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -57,6 +59,11 @@ describe('CredentialsService', () => {
     ]);
     issuerDID = issuerDID[0].id;
 
+    secondIssuerDID = await identityUtilsService.generateDID([
+      'VerifiableCredentialTESTINGIssuer12',
+    ]);
+    secondIssuerDID = secondIssuerDID[0].id;
+
     subjectDID = await identityUtilsService.generateDID([
       'VerifiableCredentialTESTINGIssuer',
     ]);
@@ -75,6 +82,13 @@ describe('CredentialsService', () => {
       credentialSchemaID,
       schema.data.schema.version
     );
+
+    sampleMultipleIssuerReqPayload = generateCredentialRequestPayload(
+      [issuerDID, secondIssuerDID],
+      subjectDID,
+      credentialSchemaID,
+      schema.data.schema.version
+    );
   });
 
   it('service should be defined', () => {
@@ -83,6 +97,12 @@ describe('CredentialsService', () => {
 
   it('should issue a credential', async () => {
     const newCred = await service.issueCredential(sampleCredReqPayload);
+    VCValidator.parse(newCred.credential);
+    expect(validate(newCred)).toBe(true);
+  });
+
+  it('should issue a credential with multiple issuers', async () => {
+    const newCred = await service.issueCredential(sampleMultipleIssuerReqPayload);
     VCValidator.parse(newCred.credential);
     expect(validate(newCred)).toBe(true);
   });

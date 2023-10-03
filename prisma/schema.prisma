@@ -21,7 +21,7 @@ enum VCStatus {
 model VerifiableCredentials {
   id                String    @id @default(uuid())
   type              String[]
-  issuer            String
+  issuer            String[]
   issuanceDate      String
   expirationDate    String
   credential_schema String

@@ -97,7 +97,7 @@ export const UnsignedVCValidator = z
     '@context': ContextValidator,
     id: z.string().optional(),
     type: z.string().array().nonempty(),
-    issuer: ProfileValidator,
+    issuer: z.union([z.string(), z.array(z.string().nonempty())]),
     issuanceDate: z.string(),
     expirationDate: z.string().optional(),
     credentialSubject: CredentialSubjectValidator.or(
