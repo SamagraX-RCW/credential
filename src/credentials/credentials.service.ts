@@ -60,6 +60,7 @@ export class CredentialsService {
     }
     return credentials.map((cred: VerifiableCredentials) => {
       const res = cred.signed;
+      res['credentialSchemaId'] = cred.credential_schema;
       delete res['options'];
       res['id'] = cred.id;
       return res as W3CCredential;
@@ -74,6 +75,7 @@ export class CredentialsService {
     const credential = await this.prisma.verifiableCredentials.findUnique({
       where: { id: id },
       select: {
+        credential_schema: true,
         signed: true,
       },
     });
@@ -83,6 +85,7 @@ export class CredentialsService {
     }
     // formatting the response as per the spec
     const res = credential.signed;
+    res['credentialSchemaId'] = credential.credential_schema;
     delete res['options'];
     res['id'] = id;
     let template = null;
@@ -314,16 +317,17 @@ export class CredentialsService {
         issuer: { has: getCreds.issuer?.id },
         AND: filteringSubject
           ? Object.keys(filteringSubject).map((key: string) => ({
-              subject: {
-                path: [key.toString()],
-                equals: filteringSubject[key],
-              },
-            }))
+            subject: {
+              path: [key.toString()],
+              equals: filteringSubject[key],
+            },
+          }))
           : [],
       },
       select: {
         id: true,
         signed: true,
+        credential_schema: true
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -342,7 +346,7 @@ export class CredentialsService {
       // formatting the output as per the spec
       delete signed['id'];
       delete signed['options'];
-      return { id: cred.id, ...signed };
+      return { id: cred.id, ...signed, credentialSchemaId: cred.credential_schema };
     });
   }
 }
